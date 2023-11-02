@@ -1,2 +1,137 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+#include <Servo.h>
+
+
+
+#define LS 8 // left sensor
+#define RS 9 // right sensor
+#define LM1 4 // left motor
+#define LM2 5 // left motor
+#define RM1 6 // right motor
+#define RM2 7 // right motor
+#define armPin 10
+#define liftPin 11
+#define trig1 13
+#define echo1 12
+
+//delay for arm and lift
+int armDelay = 2000;
+int liftDelay = 2000;
+
+Servo armServo, liftServo;
+
+bool inRange = false;
+bool hasStarted = false;
+float distance = 3; /* in inch */
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(LS, INPUT);
+  pinMode(RS, INPUT);
+  pinMode(LM1, OUTPUT);
+  pinMode(LM2, OUTPUT);
+  pinMode(RM1, OUTPUT);
+  pinMode(RM2, OUTPUT);
+  pinMode(trig1, OUTPUT);
+  pinMode(echo1, INPUT);
+  armServo.attach(armPin);
+  liftServo.attach(liftPin);
+}
+void loop() {
+  if(!hasStarted)
+  {
+    armServo.write(0);
+    liftServo.write(0);
+    hasStarted = true;
+  }
+  if (inRange == false) {
+    if (digitalRead(LS) && digitalRead(RS)) // Move Forward
+    {
+      digitalWrite(LM1, HIGH);
+      digitalWrite(LM2, LOW);
+      digitalWrite(RM1, HIGH);
+      digitalWrite(RM2, LOW);
+    }
+
+    if (!(digitalRead(LS)) && digitalRead(RS)) // Turn right
+    {
+      digitalWrite(LM1, LOW);
+      digitalWrite(LM2, LOW);
+      digitalWrite(RM1, HIGH);
+      digitalWrite(RM2, LOW);
+    }
+
+    if (digitalRead(LS) && !(digitalRead(RS))) // turn left
+    {
+      digitalWrite(LM1, HIGH);
+      digitalWrite(LM2, LOW);
+      digitalWrite(RM1, LOW);
+      digitalWrite(RM2, LOW);
+    }
+
+    if (!(digitalRead(LS)) && !(digitalRead(RS))) // stop
+    {
+      Stop();
+    }
+  }
+
+  long duration1, distance1;
+  digitalWrite(trig1, LOW); // Added this line
+  delayMicroseconds(2); // Added this line
+  digitalWrite(trig1, HIGH);
+  delayMicroseconds(10); // Added this line
+  digitalWrite(trig1, LOW);
+  duration1 = pulseIn(echo1, HIGH);
+  distance1 = (duration1 / 74) / 2;
+  delay(10);
+  if (distance1 < distance && inRange == false) {
+    inRange = true;
+    Stop();
+    delay(2000);
+    moveServo180(liftServo);
+    delay(armDelay);
+    moveServo90(armServo);
+    delay(liftDelay);
+    moveServoExit180(liftServo);
+    delay(1000);
+    moveServoExit90(armServo);
+    delay(1000);
+  }
+  if (distance1 > distance) {
+    inRange = false;
+  }
+}
+
+void Stop() {
+  digitalWrite(LM1, LOW);
+  digitalWrite(LM2, LOW);
+  digitalWrite(RM1, LOW);
+  digitalWrite(RM2, LOW);
+}
+
+void moveServoExit180(Servo servo) {
+  for(int pos = 0; pos < 180; pos += 1) {
+  servo.write(pos);
+  delay(15);     
+ }
+}
+
+void moveServo180(Servo servo) {
+  for(int pos = 180; pos>=0; pos-=1) {       
+  servo.write(pos);
+  delay(15);
+ }
+}
+
+void moveServoExit90(Servo servo) {
+  for(int pos = 0; pos < 90; pos += 1) {
+  servo.write(pos);
+  delay(15);     
+ }
+}
+
+void moveServo90(Servo servo) {
+  for(int pos = 90; pos>=1; pos-=1) {       
+  servo.write(pos);
+  delay(15);
+ }
+}
